@@ -10,6 +10,7 @@ on:
       - main
       - master
 
+
 jobs:
   build:
     runs-on: ${{ matrix.os }}
@@ -32,38 +33,33 @@ jobs:
       - name: Make the Electron app
         run: npm run make
 
-      - name: Package artifact (macOS)
-        if: matrix.os == 'macos-latest'
-        run: zip -r app-macos.zip out/make/zip/darwin/x64/*.app
-        shell: bash
-
-      - name: Package artifact (Linux)
-        if: matrix.os == 'ubuntu-latest'
-        run: zip -r app-linux.zip out/make/zip/linux/x64/*.AppImage
-        shell: bash
-
-      - name: Package artifact (Windows)
-        if: matrix.os == 'windows-latest'
-        run: Compress-Archive -Path out\make\squirrel.windows\x64\* -DestinationPath app-windows.zip
-        shell: powershell
-
-      - name: Upload artifact (macOS)
-        if: matrix.os == 'macos-latest'
+      - name: Upload build artifacts (cross-platform sharing)
         uses: actions/upload-artifact@v3
         with:
-          name: app-macos
-          path: app-macos.zip
+          name: out-${{ matrix.os }}
+          path: out/
 
-      - name: Upload artifact (Linux)
-        if: matrix.os == 'ubuntu-latest'
+  upload:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download macOS build artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: out-macos
+
+      - name: Download Linux build artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: out-linux
+
+      - name: Download Windows build artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: out-windows
+
+      - name: Re-upload all artifacts for download
         uses: actions/upload-artifact@v3
         with:
-          name: app-linux
-          path: app-linux.zip
-
-      - name: Upload artifact (Windows)
-        if: matrix.os == 'windows-latest'
-        uses: actions/upload-artifact@v3
-        with:
-          name: app-windows
-          path: app-windows.zip
+          name: all-platforms-out
+          path: out/
